@@ -26,13 +26,14 @@ const ctcBob = accBob.contract(backend, ctcAlice.getInfo());
   const OUTCOME = ['Bob Wins', 'Draw', 'Alice Win'];
 
 const Player = (who) => ({
+    ...stdlib.hasRandom,
       getHand: () => {
         const hand = Math.floor(Math.random() * HAND.length);
         console.log(`${who} chooses the hand: ${HAND [hand]}`);
         return hand;
       },
 
-      seeOutCome: (outcome) => {
+      seeOutcome: (outcome) => {
         console.log(`${who} saw outcome ${OUTCOME[outcome]}`)
        }
   });
