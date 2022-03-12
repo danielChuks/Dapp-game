@@ -21,12 +21,14 @@ const Player = {
   ...hasRandom, 
   getHand: Fun([], UInt),
   seeOutcome: Fun([UInt], Null),
-}
+  informTimeout: Fun([], Null),
+};
 //the player function indicate that both alice and bob has the features off player ..i.e they both have get hand and seeOutCome..
 export const main = Reach.App(() => {
   const Alice = Participant('Alice', {
     ...Player,
     wager: UInt,
+    deadline: UInt,
   });
   const Bob = Participant('Bob', {
     ...Player,
@@ -34,14 +36,22 @@ export const main = Reach.App(() => {
   });
   init();
 
+// this function infrorms both paticiant of the timeoouut 
+const informTimeout  = () => {
+  each([Alice, Bob], () => {
+    interact.informTimeout();
+  });
+};
+
 //Alice hand 
 Alice.only(() => {
   const wager = declassify(interact.wager);
   const _handAlice = interact.getHand();
   const [_commitAlice, _saltAlice] = makeCommitment(interact, _handAlice);
   const commitAlice = declassify(_commitAlice);
+  const deadline = declassify(interact.deadline)
 });
-Alice.publish(wager, commitAlice)
+Alice.publish(wager, commitAlice, deadline)
   .pay(wager);
 commit();
 
@@ -51,14 +61,16 @@ Bob.only(() =>{
   interact.acceptWager(wager);
     const handBob = declassify(interact.getHand())
 });
-Bob.publish(handBob).pay(wager);
+Bob.publish(handBob).pay(wager)
+.timeout(relativeTime(deadline), () => closeTo(Alice, informTimeout));
 commit();
 
 Alice.only(() => {
   const saltAlice = declassify(_saltAlice);
   const handAlice = declassify(_handAlice);
 });
-Alice.publish(saltAlice, handAlice);
+Alice.publish(saltAlice, handAlice)
+.timeout(relativeTime(deadline), () => closeTo(Bob, informTimeout))
 checkCommitment(commitAlice, saltAlice, handAlice);
 
 

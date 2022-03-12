@@ -35,6 +35,9 @@ const Player = (who) => ({
 
       seeOutcome: (outcome) => {
         console.log(`${who} saw outcome ${OUTCOME[outcome]}`)
+       },
+       informTimeout: () => {
+         console.log( `${who} observed a timeout`)
        }
   });
 
@@ -44,12 +47,21 @@ const Player = (who) => ({
   await Promise.all([
     backend.Alice(ctcAlice, {
       ...Player('Alice'),
-      wager: stdlib.parseCurrency(50)
+      wager: stdlib.parseCurrency(50),
+      deadline: 10
     }),
     backend.Bob(ctcBob, {
       ...Player('Bob'),
-     acceptWager: (amt) => {
-       console.log(`Bob accepts the  wager of ${fmt(amt)}.`)}
+     acceptWager: async (amt) => {
+       if(Math.random() <= 0.5){
+         for(let i = 0; i <= 10; i ++){
+           console.log(` Bob takes his time `)
+           await stdlib.wait(1);
+         }
+       }else{ 
+         console.log(`Bob accept the wager ${fmt(amt)}`)
+       }
+    }
     }),
   ]);
 
