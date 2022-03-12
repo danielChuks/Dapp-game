@@ -4,7 +4,6 @@ const stdlib = loadStdlib(process.env);
 
 //assiginin the stdlib.parseCurrency into the startingBalance
 const startingBalance = stdlib.parseCurrency(100);
-
 const accAlice = await stdlib.newTestAccount(startingBalance)
 const accBob = await stdlib.newTestAccount(startingBalance);
 
@@ -20,8 +19,6 @@ const beforeBob = await(getBalance(accBob))
 
 console.log('Welcome, Alice and Bob ');
 
-  console.log('Launching game...');
-
   //this lines of code represent the indivitual contracts of the participant....
 const ctcAlice = accAlice.contract(backend);
 const ctcBob = accBob.contract(backend, ctcAlice.getInfo());
@@ -33,9 +30,15 @@ const ctcBob = accBob.contract(backend, ctcAlice.getInfo());
   //The player method in referenced in front end to get the hand of both Alice  and Bod. this include their individual hands
 const Player = (who) => ({
     ...stdlib.hasRandom,
-      getHand: () => {
+      getHand: async () => {
         const hand = Math.floor(Math.random() * HAND.length);
         console.log(`${who} chooses the hand: ${HAND [hand]}`);
+        if(Math.random() <= 0.01){
+          for(let i = 0; i < 10; i++){
+            console.log(`${who}, takes their time is sending back....`)
+            await stdlib.wait(1);
+          }
+        }
         return hand;
       },
 //here we declaring a function that will reference the possible  outcome of both alice  and bob including a time out should there bee a  timeout in the wager published  by Alice.
@@ -43,7 +46,7 @@ const Player = (who) => ({
         console.log(`${who} saw outcome ${OUTCOME[outcome]}`)
        },
        informTimeout: () => {
-         console.log( `${who} observed a timeout`)
+         console.log(`${who} observed a timeout`)
        }
   });
 
@@ -58,19 +61,13 @@ const Player = (who) => ({
       deadline: 10
     }),
     //acceptWager take an async funtion that await the amt and check for a timeout with a for loop
-    backend.Bob(ctcBob, {
+    ctcBob.p.Bob({
       ...Player('Bob'),
-     acceptWager: async (amt) => {
-       if(Math.random() <= 0.5){
-         for(let i = 0; i <= 10; i ++){
-           console.log(` Bob takes his time `)
-           await stdlib.wait(1);
-         }
-       }else{ 
-         console.log(`Bob accept the wager ${fmt(amt)}`)
-       }
-    }
+      acceptWager: (amt) => {
+        console.log(`Bob accepts the wager of ${fmt(amt)}.`);
+      },
     }),
+
   ]);
 
   const afterAlice = await getBalance(accAlice)

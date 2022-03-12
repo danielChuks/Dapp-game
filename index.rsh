@@ -43,26 +43,43 @@ const informTimeout  = () => {
   });
 };
 
-//Alice hand 
+
 Alice.only(() => {
   const wager = declassify(interact.wager);
-  const _handAlice = interact.getHand();
-  const [_commitAlice, _saltAlice] = makeCommitment(interact, _handAlice);
-  const commitAlice = declassify(_commitAlice);
-  const deadline = declassify(interact.deadline)
+  const deadline = declassify(interact.deadline);
 });
-Alice.publish(wager, commitAlice, deadline)
+Alice.publish(wager, deadline)
   .pay(wager);
 commit();
 
+Bob.only(() => {
+  interact.acceptWager(wager);
+});
+Bob.pay(wager)
+  .timeout(relativeTime(deadline), () => closeTo(Alice, informTimeout));
+//the repeatable section of the application, where each party will repeatedly submit hands until the the outcome is not a draw. 
+var outcome = DRAW;
+invariant( balance() == 2 * wager && isOutCome(outcome) );
+while ( outcome == DRAW ) {
+  commit();
+
+//Alice hand 
+Alice.only(() => {
+  const _handAlice = interact.getHand();
+  const [_commitAlice, _saltAlice] = makeCommitment(interact, _handAlice);
+  const commitAlice = declassify(_commitAlice);
+});
+
+Alice.publish(commitAlice)
+.timeout(relativeTime(deadline), () => closeTo(Bob, informTimeout));
+commit();
 
 unknowable(Bob, Alice(_handAlice, _saltAlice));
-Bob.only(() =>{
-  interact.acceptWager(wager);
-    const handBob = declassify(interact.getHand())
+Bob.only(() => {
+  const handBob = declassify(interact.getHand());
 });
-Bob.publish(handBob).pay(wager)
-.timeout(relativeTime(deadline), () => closeTo(Alice, informTimeout));
+Bob.publish(handBob)
+  .timeout(relativeTime(deadline), () => closeTo(Alice, informTimeout));
 commit();
 
 Alice.only(() => {
@@ -70,19 +87,17 @@ Alice.only(() => {
   const handAlice = declassify(_handAlice);
 });
 Alice.publish(saltAlice, handAlice)
-.timeout(relativeTime(deadline), () => closeTo(Bob, informTimeout))
+  .timeout(relativeTime(deadline), () => closeTo(Bob, informTimeout));
 checkCommitment(commitAlice, saltAlice, handAlice);
 
+outcome = winner(handAlice, handBob);
+continue;
+}
 
-const outcome = winner(handAlice, handBob);
-const                 [forAlice, forBob] =
-  outcome == A_WINS ? [       2,      0] :
-  outcome == B_WINS ? [       0,      2] :
-  /* tie           */ [       1,      1];
-transfer(forAlice * wager).to(Alice);
-transfer(forBob   * wager).to(Bob);
+
+assert(outcome == A_WINS || outcome == B_WINS);
+transfer(2 * wager).to(outcome == A_WINS ? Alice : Bob);
 commit();
-
 
 each([Alice, Bob], () => {
   interact.seeOutcome(outcome);
@@ -90,7 +105,6 @@ each([Alice, Bob], () => {
 
 exit();
 });
-
 
 
 
